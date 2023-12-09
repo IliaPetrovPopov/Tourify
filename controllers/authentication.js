@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const AppError = require('../utils/app-error');
 const APIFeatures = require('../utils/api-features');
 const { decode } = require('punycode');
+const { sendEmail } = require('../utils/email');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -19,6 +20,7 @@ module.exports.signup = catchAsync(async (req, res, next) => {
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: req.body.passwordChangedAt,
+    role: req.body.role,
   });
 
   const token = signToken(user._id);
@@ -89,3 +91,56 @@ module.exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser;
   next();
 });
+
+module.exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError("You don't have permission to do this action", 403)
+      );
+    }
+
+    next();
+  };
+};
+
+module.exports.forgotPassword = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return next(new AppError('There is no user with that email address!', 404));
+  }
+
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetURL = `${req.protocol}://${req.get(
+    'host'
+  )}/api/v1/users/resetPassword/${resetToken}`;
+
+  const message = `Forgot your password? 
+  Submit request with your new password to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: 'Your password reset token (it is only valid for 10 minutes)',
+      message,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Token sent to email',
+    });
+  } catch (err) {
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(
+      new AppError('There is an error sending the email. Try again!', 500)
+    );
+  }
+});
+
+module.exports.resetPassword = (req, res, next) => {};
