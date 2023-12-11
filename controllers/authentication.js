@@ -163,7 +163,7 @@ module.exports.resetPassword = catchAsync(async (req, res, next) => {
 
   await user.save();
 
-  createAndSendToken(user, 200, res)
+  createAndSendToken(user, 200, res);
 });
 
 module.exports.updatePassword = catchAsync(async (req, res, next) => {
@@ -181,5 +181,5 @@ module.exports.updatePassword = catchAsync(async (req, res, next) => {
   user.passwordConfirm = req.body.passwordConfirm;
   await user.save();
 
-  createAndSendToken(user, 200, res)
+  createAndSendToken(user, 200, res);
 });
