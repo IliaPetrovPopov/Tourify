@@ -3,40 +3,56 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Tour = require('../../models/tourModel');
 
-dotenv.config({ path: '../../config.env' });
-
+dotenv.config({ path: './config.env' });
 const DB = process.env.DATABASE.replace(
   '<PASSWORD>',
   process.env.DATABASE_PASSWORD
 );
 
+const connectDB = async () => {
+  try {
+    await mongoose.connect(DB, {});
+    console.log('Connected to the database');
+  } catch (error) {
+    console.error('Error connecting to the database:', error.message);
+  }
+};
+
 (async () => {
-  await mongoose.connect(DB, {});
+  try {
+    await connectDB();
+    
+    const tours = JSON.parse(fs.readFileSync('./dev-data/data/tours.json', 'utf-8'));
+
+    const importData = async () => {
+      try {
+        await Tour.create(tours);
+        console.log("Data imported successfully");
+      } catch (error) {
+        console.error("Error importing data:", error.message);
+      } finally {
+        process.exit();
+      }
+    };
+
+    const deleteAllData = async () => {
+      try {
+        await Tour.deleteMany();
+        console.log("All data deleted successfully");
+      } catch (error) {
+        console.error("Error deleting data:", error.message);
+      } finally {
+        process.exit();
+      }
+    };
+
+    if (process.argv[2] === '--import') {
+      await importData();
+    } else if (process.argv[2] === '--delete') {
+      await deleteAllData();
+    }
+  } catch (error) {
+    console.error('Error:', error.message);
+    process.exit(1); // exit with a non-zero status code to indicate failure
+  }
 })();
-
-const tours = JSON.parse(fs.readFileSync('tours-simple.json', 'utf-8'));
-
-const importData = async () => {
-  try {
-    await Tour.create(tours);
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-
-const deleteAllData = async () => {
-  try {
-    await Tour.deleteMany();
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-
-if (process.argv[2] === '--import') {
-  importData();
-} else if (process.argv[2] === '--delete') {
-  deleteAllData();
-}
-
-console.log(process.argv);
-process.exit();
