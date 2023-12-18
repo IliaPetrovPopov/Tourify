@@ -13,6 +13,7 @@ const globalErrorHandler = require('./controllers/error-controller');
 
 const tourRouter = require('./routes/tour');
 const userRouter = require('./routes/user');
+const reviewRouter = require('./routes/review');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use((req, res, next) => {
 
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/reviews', reviewRouter);
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl}`, 404));
 });
