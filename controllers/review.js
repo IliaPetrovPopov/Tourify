@@ -20,7 +20,6 @@ module.exports.getAllReviews = getAll(Review);
 
 module.exports.getReview = getOne(Review);
 
-
 module.exports.createReview = createOne(Review);
 
 module.exports.modifyReview = updateOne(Review);
