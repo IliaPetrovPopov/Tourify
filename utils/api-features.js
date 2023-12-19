@@ -23,7 +23,7 @@ class APIFeatures {
   }
 
   sort() {
-    if (Object.keys(this.queryString).length > 0) {
+    if (this.queryString.sort) {
       const sortBy = this.queryString.sort.split(',').join(' ');
       this.query = this.query.sort(sortBy);
     } else {
