@@ -16,18 +16,26 @@ const {
   resetPassword,
   updatePassword,
   protect,
+  restrictTo,
 } = require('../controllers/authentication.js');
 
 const router = express.Router();
 
-router.get('/me', protect, getMe, getUser);
 router.post('/signup', signup);
 router.post('/login', login);
 router.post('/forgotPassword', forgotPassword);
 router.patch('/resetPassword/:token', resetPassword);
-router.patch('/updatePassword', protect, updatePassword);
-router.patch('/updateMe', protect, updateMe);
-router.delete('/deleteMe', protect, deleteMe);
+
+// Protecting all routes after here with this middleware
+router.use(protect);
+
+// Making all of them available only for admins
+router.use(restrictTo('admin'));
+
+router.get('/me', getMe, getUser);
+router.patch('/updatePassword', updatePassword);
+router.patch('/updateMe', updateMe);
+router.delete('/deleteMe', deleteMe);
 
 router.route('/').get(getAllUsers).post(createUser);
 router.route('/:id').get(getUser).patch(updateUser).delete(deleteUser);
