@@ -2,6 +2,8 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Tour = require('../../models/tourModel');
+const Review = require('../../models/reviewModel');
+const User = require('../../models/userModel');
 
 dotenv.config({ path: './config.env' });
 const DB = process.env.DATABASE.replace(
@@ -21,15 +23,26 @@ const connectDB = async () => {
 (async () => {
   try {
     await connectDB();
-    
-    const tours = JSON.parse(fs.readFileSync('./dev-data/data/tours.json', 'utf-8'));
+
+    const tours = JSON.parse(
+      fs.readFileSync('./dev-data/data/tours.json', 'utf-8')
+    );
+    const users = JSON.parse(
+      fs.readFileSync('./dev-data/data/users.json', 'utf-8')
+    );
+    const reviews = JSON.parse(
+      fs.readFileSync('./dev-data/data/reviews.json', 'utf-8')
+    );
 
     const importData = async () => {
       try {
         await Tour.create(tours);
-        console.log("Data imported successfully");
+        await User.create(users, { validateBeforeSave: false });
+        await Review.create(reviews);
+
+        console.log('Data imported successfully');
       } catch (error) {
-        console.error("Error importing data:", error.message);
+        console.error('Error importing data:', error.message);
       } finally {
         process.exit();
       }
@@ -38,9 +51,12 @@ const connectDB = async () => {
     const deleteAllData = async () => {
       try {
         await Tour.deleteMany();
-        console.log("All data deleted successfully");
+        await User.deleteMany();
+        await Review.deleteMany();
+
+        console.log('All data deleted successfully');
       } catch (error) {
-        console.error("Error deleting data:", error.message);
+        console.error('Error deleting data:', error.message);
       } finally {
         process.exit();
       }
