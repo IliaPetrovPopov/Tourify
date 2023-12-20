@@ -17,7 +17,7 @@ module.exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
-module.exports.getAllTours = getAll(Tour)
+module.exports.getAllTours = getAll(Tour);
 
 module.exports.getTour = getOne(Tour, { path: 'reviews' });
 
@@ -123,5 +123,77 @@ module.exports.getMontlyPlan = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     plan,
+  });
+});
+
+module.exports.getToursWithin = catchAsync(async (req, res, next) => {
+  const { distance, latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  const radius = unit === 'mi' ? distance / 3963.2 : distance / 6378.1;
+
+  if (!lat || !lng) {
+    return next(
+      new AppError(
+        'Please provide latitute & longtitude in the format lat,lng',
+        400
+      )
+    );
+  }
+
+  // Geosphere query
+  const tours = await Tour.find({
+    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      tours,
+    },
+  });
+});
+
+module.exports.getDistances = catchAsync(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(',');
+
+  const multiplier = unit === "mi" ? 0.000621371 : 0.001;
+  if (!lat || !lng) {
+    return next(
+      new AppError(
+        'Please provide latitute & longtitude in the format lat,lng',
+        400
+      )
+    );
+  }
+
+  const distances = await Tour.aggregate([
+
+    // Geospatial pipeline
+    {
+      $geoNear: {
+        near: {
+          type: 'Point',
+          coordinates: [lng * 1, lat * 1],
+        },
+        distanceField: 'distance',
+        distanceMultiplier: multiplier,
+      },
+    },
+    {
+      $project: {
+        distance: 1,
+        name: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      distances,
+    },
   });
 });
