@@ -3,6 +3,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
+const path = require('path');
 
 // xss-clean is deprecated
 const xss = require('xss-clean');
@@ -14,8 +15,12 @@ const globalErrorHandler = require('./controllers/error-controller');
 const tourRouter = require('./routes/tour');
 const userRouter = require('./routes/user');
 const reviewRouter = require('./routes/review');
+const viewRouter = require("./routes/view")
 
 const app = express();
+
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
 
 app.use(helmet());
 
@@ -61,6 +66,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/", viewRouter)
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
