@@ -143,6 +143,7 @@ module.exports.getToursWithin = catchAsync(async (req, res, next) => {
 
   // Geosphere query
   const tours = await Tour.find({
+    // [[LocationToStartFrom], what is the radius in which to search]
     startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
   });
 
