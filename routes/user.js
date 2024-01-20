@@ -8,6 +8,8 @@ const {
   updateMe,
   deleteMe,
   getMe,
+  uploadUserPhoto,
+  resizeUserPhoto,
 } = require('../controllers/user.js');
 const {
   signup,
@@ -31,13 +33,14 @@ router.patch('/resetPassword/:token', resetPassword);
 // Protecting all routes after here with this middleware
 router.use(protect);
 
+router.patch('/updatePassword', updatePassword);
 // Making all of them available only for admins
-router.use(restrictTo('admin'));
 
 router.get('/me', getMe, getUser);
-router.patch('/updatePassword', updatePassword);
-router.patch('/updateMe', updateMe);
+router.patch('/updateMe', uploadUserPhoto, resizeUserPhoto, updateMe);
 router.delete('/deleteMe', deleteMe);
+
+router.use(restrictTo('admin'));
 
 router.route('/').get(getAllUsers).post(createUser);
 router.route('/:id').get(getUser).patch(updateUser).delete(deleteUser);
