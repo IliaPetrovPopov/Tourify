@@ -9,7 +9,9 @@ const {
   getTourStats,
   getMontlyPlan,
   getToursWithin,
-  getDistances
+  getDistances,
+  uploadTourImages,
+  resizeTourImages,
 } = require('../controllers/tour');
 const { protect, restrictTo } = require('../controllers/authentication');
 const reviewRouter = require('./review');
@@ -29,8 +31,10 @@ router
   .get(protect, restrictTo('admin', 'lead-guide', 'guide'), getMontlyPlan);
 router.route('/top-5-cheapest-tours').get(aliasTopTours, getAllTours);
 
-router.route("/tours-within/:distance/center/:latlng/unit/:unit").get(getToursWithin)
-router.route("/distances/:latlng/unit/:unit").get(getDistances)
+router
+  .route('/tours-within/:distance/center/:latlng/unit/:unit')
+  .get(getToursWithin);
+router.route('/distances/:latlng/unit/:unit').get(getDistances);
 
 router
   .route('/')
@@ -39,7 +43,13 @@ router
 router
   .route('/:id?')
   .get(getTour)
-  .patch(protect, restrictTo('admin', 'lead-guide'), modifyTour)
+  .patch(
+    protect,
+    restrictTo('admin', 'lead-guide'),
+    uploadTourImages,
+    resizeTourImages,
+    modifyTour
+  )
   .delete(protect, restrictTo('admin', 'lead-guide'), deleteTour);
 
 module.exports = router;
