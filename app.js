@@ -9,6 +9,7 @@ const path = require('path');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 const AppError = require('./utils/app-error');
 const globalErrorHandler = require('./controllers/error-controller');
@@ -45,11 +46,7 @@ app.use(
         workerSrc: ["'self'", 'data:', 'blob:'],
         childSrc: ["'self'", 'blob:'],
         imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: [
-          "'self'",
-          'blob:',
-          'wss:',
-        ],
+        connectSrc: ["'self'", 'blob:', 'wss:'],
         upgradeInsecureRequests: [],
       },
     },
@@ -92,6 +89,8 @@ app.use(
 );
 
 app.use(express.static('./public'));
+
+app.use(compression());
 
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
