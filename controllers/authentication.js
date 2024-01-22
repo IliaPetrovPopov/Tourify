@@ -5,8 +5,8 @@ const catchAsync = require('../utils/catch-async');
 const jwt = require('jsonwebtoken');
 const AppError = require('../utils/app-error');
 const APIFeatures = require('../utils/api-features');
-const { decode } = require('punycode');
 const { sendEmail } = require('../utils/email');
+const Email = require('../utils/email');
 
 const cookieOptions = {
   expires: new Date(
@@ -26,7 +26,7 @@ const createAndSendToken = (user, statusCode, res) => {
   if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
 
   res.cookie('jwt', token, cookieOptions);
-  
+
   user.password = undefined;
   res.status(statusCode).json({
     status: 'success',
@@ -42,9 +42,11 @@ module.exports.signup = catchAsync(async (req, res, next) => {
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: Date.now(),
-    role: req.body.role,
+    role: 'user',
   });
 
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  await new Email(user, url).sendWelcome();
   createAndSendToken(user, 201, res);
 });
 
@@ -65,6 +67,11 @@ module.exports.login = catchAsync(async (req, res, next) => {
   createAndSendToken(user, 200, res);
 });
 
+module.exports.logout = (req, res) => {
+  res.clearCookie('jwt');
+  res.status(200).json({ status: 'success' });
+};
+
 module.exports.protect = catchAsync(async (req, res, next) => {
   let token;
   if (
@@ -72,12 +79,15 @@ module.exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
 
   if (!token) {
     return next(
-      new APIFeatures('You are not logged in! Please log in to continue', 401)
+      new AppError('You are not logged in! Please log in to continue', 401)
     );
+    // res.redirect('/');
   }
 
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
@@ -98,6 +108,31 @@ module.exports.protect = catchAsync(async (req, res, next) => {
   }
 
   req.user = currentUser;
+  next();
+});
+
+module.exports.isLoggedIn = catchAsync(async (req, res, next) => {
+  if (req.cookies.jwt === null) {
+    return next();
+  }
+
+  if (req.cookies.jwt) {
+    const decoded = await promisify(jwt.verify)(
+      req.cookies.jwt,
+      process.env.JWT_SECRET
+    );
+    const currentUser = await User.findById(decoded.id);
+
+    if (!currentUser) {
+      return next();
+    }
+
+    const isPasswordChanged = currentUser.changePasswordAfter(decoded.iat);
+    if (isPasswordChanged) {
+      return next();
+    }
+    res.locals.user = currentUser;
+  }
   next();
 });
 
@@ -123,19 +158,13 @@ module.exports.forgotPassword = catchAsync(async (req, res, next) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetURL = `${req.protocol}://${req.get(
-    'host'
-  )}/api/v1/users/resetPassword/${resetToken}`;
-
-  const message = `Forgot your password? 
-  Submit request with your new password to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
-
+  
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Your password reset token (it is only valid for 10 minutes)',
-      message,
-    });
+    const resetURL = `${req.protocol}://${req.get(
+      'host'
+    )}/api/v1/users/resetPassword/${resetToken}`;
+    
+    await new Email(user, resetURL).sendPasswordReset();
 
     res.status(200).json({
       status: 'success',
