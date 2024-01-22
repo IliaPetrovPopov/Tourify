@@ -8,6 +8,7 @@ const path = require('path');
 // xss-clean is deprecated
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cookieParser = require('cookie-parser');
 
 const AppError = require('./utils/app-error');
 const globalErrorHandler = require('./controllers/error-controller');
@@ -15,15 +16,45 @@ const globalErrorHandler = require('./controllers/error-controller');
 const tourRouter = require('./routes/tour');
 const userRouter = require('./routes/user');
 const reviewRouter = require('./routes/review');
-const viewRouter = require("./routes/view")
+const bookingRouter = require('./routes/booking');
+const viewRouter = require('./routes/view');
 
 const app = express();
 
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
 
-app.use(helmet());
-
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'", 'data:', 'blob:', 'https:', 'ws:'],
+        baseUri: ["'self'"],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        scriptSrc: [
+          "'self'",
+          'https:',
+          'http:',
+          'blob:',
+          'https://js.stripe.com',
+          'https://*.cloudflare.com',
+        ],
+        frameSrc: ["'self'", 'https://js.stripe.com'],
+        objectSrc: ['none'],
+        styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+        workerSrc: ["'self'", 'data:', 'blob:'],
+        childSrc: ["'self'", 'blob:'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: [
+          "'self'",
+          'blob:',
+          'wss:',
+        ],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
@@ -41,6 +72,7 @@ app.use(
     limit: '10kb',
   })
 );
+app.use(cookieParser());
 
 app.use(mongoSanitize());
 
@@ -66,10 +98,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/", viewRouter)
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/bookings', bookingRouter);
+
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl}`, 404));
 });
