@@ -17,7 +17,7 @@ const DB = process.env.DATABASE.replace(
 );
 
 (async () => {
-  await mongoose.connect(DB, {});
+  await mongoose.connect(DB, { useNewUrlParser: true, useUnifiedTopology: true });
 })();
 
 const port = process.env.PORT ?? 3000;
