@@ -20,18 +20,16 @@ const userRouter = require('./routes/user');
 const reviewRouter = require('./routes/review');
 const bookingRouter = require('./routes/booking');
 const viewRouter = require('./routes/view');
+const { webhookCheckout } = require('./controllers/booking');
 
 const app = express();
 
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
 
+app.use(cors());
+
 app.options('*', cors());
-
-app.use(cors({
-  origin: "*"
-}));
-
 
 app.use(
   helmet({
@@ -71,6 +69,12 @@ const limiter = rateLimit({
 });
 
 app.use('/api', limiter);
+
+app.post(
+  '/webhook-checkout',
+  express.raw({ type: 'application/json' }),
+  webhookCheckout
+);
 
 app.use(
   express.json({
