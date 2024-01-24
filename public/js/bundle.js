@@ -5,6 +5,19 @@
       __defProp(target, name, { get: all3[name], enumerable: true });
   };
 
+  // public/js/alert.js
+  var hideAlert = () => {
+    const el = document.querySelector(".alert");
+    if (el)
+      el.parentElement.removeChild(el);
+  };
+  var showAlert = (type, message) => {
+    hideAlert();
+    const markup = `<div class="alert alert--${type}">${message}</div>`;
+    document.querySelector("body").insertAdjacentHTML("afterbegin", markup);
+    window.setTimeout(hideAlert, 5e3);
+  };
+
   // node_modules/axios/lib/helpers/bind.js
   function bind(fn, thisArg) {
     return function wrap() {
@@ -2128,19 +2141,6 @@
     mergeConfig: mergeConfig2
   } = axios_default;
 
-  // public/js/alert.js
-  var hideAlert = () => {
-    const el = document.querySelector(".alert");
-    if (el)
-      el.parentElement.removeChild(el);
-  };
-  var showAlert = (type, message) => {
-    hideAlert();
-    const markup = `<div class="alert alert--${type}">${message}</div>`;
-    document.querySelector("body").insertAdjacentHTML("afterbegin", markup);
-    window.setTimeout(hideAlert, 4e3);
-  };
-
   // public/js/login.js
   var login = async (email, password) => {
     try {
@@ -2268,4 +2268,7 @@
       bookTour(tourId);
     });
   }
+  var alertMessage = document.querySelector("body").dataset.alert;
+  if (alertMessage)
+    showAlert("success", alertMessage);
 })();
